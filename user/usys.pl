@@ -36,5 +36,6 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
-entry("sigalarm");
-entry("sigreturn");
+entry("kprint");
+entry("pgtrace");
+entry("countkfree");
