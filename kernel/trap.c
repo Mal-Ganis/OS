@@ -49,12 +49,11 @@ usertrap(void)
   
   // save user program counter.
   p->trapframe->epc = r_sepc();
-
-  uint64 scause = r_scause();
-  if(scause == 8){
+  
+  if(r_scause() == 8){
     // system call
 
-    if(p->killed)
+    if(lockfree_read4(&p->killed))
       exit(-1);
 
     // sepc points to the ecall instruction,
@@ -68,25 +67,17 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else if (scause == 13 || scause == 15) {
-    uint64 vaddr = r_stval();
-    vaddr = PGROUNDDOWN(vaddr);
-    struct vm_area_struct *vma;
-    for (vma = p->head.vm_next; vma != &p->head; vma = vma->vm_next){
-      if (vaddr >= vma->vm_start && vaddr < vma->vm_end)
-        break;
-    }
-    if (vma == &p->head || do_no_page(vma, vaddr) != 0) {
-      p->killed = 1;
-    }
   } else {
+
+    
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;
   }
 
-  if(p->killed)
+  if(lockfree_read4(&p->killed))
     exit(-1);
+  
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2)
@@ -201,7 +192,13 @@ devintr()
       uartintr();
     } else if(irq == VIRTIO0_IRQ){
       virtio_disk_intr();
-    } else if(irq){
+    }
+#ifdef LAB_NET
+    else if(irq == E1000_IRQ){
+      e1000_intr();
+    }
+#endif
+    else if(irq){
       printf("unexpected interrupt irq=%d\n", irq);
     }
 

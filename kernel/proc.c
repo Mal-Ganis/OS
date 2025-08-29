@@ -134,8 +134,6 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
-  p->head.vm_prev = &p->head;
-  p->head.vm_next = &p->head;
   return p;
 }
 
@@ -304,12 +302,6 @@ fork(void)
 
   np->state = RUNNABLE;
 
-  if (mmap_copy(p, np) < 0){
-    freeproc(np);
-    release(&np->lock);
-    return -1;
-  }
-
   release(&np->lock);
 
   return pid;
@@ -351,8 +343,6 @@ exit(int status)
 
   if(p == initproc)
     panic("init exiting");
-
-  proc_freemmap(p);
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
