@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct vm_area_struct;
 
 // bio.c
 void            binit(void);
@@ -33,6 +34,8 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
+int             filemap_nopage(struct vm_area_struct *, uint64, uint64);
+int             filemap_sync(struct vm_area_struct *, uint64, uint64);
 
 // fs.c
 void            fsinit(int);
@@ -60,9 +63,11 @@ void            ramdiskintr(void);
 void            ramdiskrw(struct buf*);
 
 // kalloc.c
-void*           kalloc(void);
-void            kfree(void *);
-void            kinit(void);
+void*                  kalloc(void);
+void                   kfree(void *);
+void                   kinit(void);
+struct vm_area_struct *vm_area_alloc();
+void                   vm_area_free(struct vm_area_struct *);
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -86,6 +91,7 @@ int             cpuid(void);
 void            exit(int);
 int             fork(void);
 int             growproc(int);
+void            proc_mapstacks(pagetable_t);
 pagetable_t     proc_pagetable(struct proc *);
 void            proc_freepagetable(pagetable_t, uint64);
 int             kill(int);
@@ -104,6 +110,7 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+void            proc_freemmap(struct proc *);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -156,7 +163,7 @@ int             uartgetc(void);
 // vm.c
 void            kvminit(void);
 void            kvminithart(void);
-void            kvmmap(uint64, uint64, uint64, int);
+void            kvmmap(pagetable_t, uint64, uint64, uint64, int);
 int             mappages(pagetable_t, uint64, uint64, uint64, int);
 pagetable_t     uvmcreate(void);
 void            uvminit(pagetable_t, uchar *, uint);
@@ -166,6 +173,7 @@ int             uvmcopy(pagetable_t, pagetable_t, uint64);
 void            uvmfree(pagetable_t, uint64);
 void            uvmunmap(pagetable_t, uint64, uint64, int);
 void            uvmclear(pagetable_t, uint64);
+pte_t *         walk(pagetable_t, uint64, int);
 uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
@@ -181,6 +189,11 @@ void            plic_complete(int);
 void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
+
+// mm.c
+int             do_no_page(struct vm_area_struct *, uint64);
+int             mmap_copy(struct proc *, struct proc *);
+void            proc_freemmap(struct proc *);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

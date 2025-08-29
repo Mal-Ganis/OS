@@ -1,1 +1,0 @@
-Hash table is a shared global variable. Multithreading can cause thread safety problems when writing at the same time.
